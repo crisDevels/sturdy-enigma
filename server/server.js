@@ -6,6 +6,9 @@ import Shopify, { ApiVersion } from "@shopify/shopify-api";
 import Koa from "koa";
 import next from "next";
 import Router from "koa-router";
+import fs from 'fs';
+import { Session } from '@shopify/shopify-api/dist/auth/session'
+import routes from './router/index'
 
 dotenv.config();
 const port = parseInt(process.env.PORT, 10) || 8081;
@@ -15,6 +18,34 @@ const app = next({
 });
 const handle = app.getRequestHandler();
 
+const FILE_SESSION = './session.json';
+
+const sessionCallback = (session) => {
+  fs.writeFileSync(FILE_SESSION, JSON.stringify(session))
+  return true;
+}
+
+const loadCallback = () => {
+  if(fs.existsSync(FILE_SESSION)) {
+    const result = fs.readFileSync(FILE_SESSION, 'utf8')
+    return Object.assign(
+      new Session,
+      JSON.parse(result)
+    )
+  }
+  return false;
+}
+
+const deleteCallback = (id) => {
+  console.log('deleteCalback ', id);
+}
+
+const customSessionStorage = new Shopify.Session.CustomSessionStorage(
+  sessionCallback,
+  loadCallback,
+  deleteCallback
+)
+
 Shopify.Context.initialize({
   API_KEY: process.env.SHOPIFY_API_KEY,
   API_SECRET_KEY: process.env.SHOPIFY_API_SECRET,
@@ -23,12 +54,19 @@ Shopify.Context.initialize({
   API_VERSION: ApiVersion.October20,
   IS_EMBEDDED_APP: true,
   // This should be replaced with your preferred storage strategy
-  SESSION_STORAGE: new Shopify.Session.MemorySessionStorage(),
+  SESSION_STORAGE: customSessionStorage,
 });
 
 // Storing the currently active shops in memory will force them to re-login when your server restarts. You should
 // persist this object in your app.
 const ACTIVE_SHOPIFY_SHOPS = {};
+const sessionSave = loadCallback();
+
+if (sessionSave?.shop && sessionSave?.scope) {
+  console.log(sessionSave);
+  const ACTIVE_SHOPIFY_SHOPS = {};
+  ACTIVE_SHOPIFY_SHOPS[sessionSave.shop] = sessionSave.scope;
+}
 
 app.prepare().then(async () => {
   const server = new Koa();
@@ -81,10 +119,29 @@ app.prepare().then(async () => {
   router.post(
     "/graphql",
     verifyRequest({ returnHeader: true }),
+
     async (ctx, next) => {
       await Shopify.Utils.graphqlProxy(ctx.req, ctx.res);
     }
   );
+  
+  
+  async function registreSession (ctx, next) {
+    if(fs.existsSync(FILE_SESSION)) {
+      const read = fs.readFileSync(FILE_SESSION, 'utf8')
+      const session = Object.assign(
+        new Session,
+        JSON.parse(read)
+      )
+      console.log(session);
+      ctx.sessionFromToken = session;
+    }
+    return next();
+  }
+  
+  server.use(registreSession);
+
+  server.use(routes());
 
   router.get("(/_next/static/.*)", handleRequest); // Static content is clear
   router.get("/_next/webpack-hmr", handleRequest); // Webpack content is clear
