@@ -1,26 +1,26 @@
 /* THIS METHOD TO CREATE ROUTE BACKEND TO script tags */
 import Router from "koa-router";
-import { createScript } from "../controllers/scripts_controller";
+import { createScript, getScriptsAll } from "../controllers/scripts_controller";
 
 // 1. create PREXIS
 const router = new Router({prefix: '/script_tag'})
 
 // 2. create routes TO ACCESS
 router.get('/', async (ctx) => {
-  ctx.body = 'Get script tag'
+  const getAll = await getScriptsAll(ctx.client);
+  ctx.body = getAll;
 })
 
 router.get('/all', async (ctx) => {
-  ctx.body = 'Get all script tag'
+  const getAll = await getScriptsAll(ctx.client);
+  ctx.body = getAll;
 })
 
 router.post('/', async (ctx) => {
-  const { request, response } = ctx;
   const { shop, accessToken } = ctx.sessionFromToken;
   try {
     const create = await createScript(shop, accessToken);
-    response.send(create)
-    ctx.body = 'Create a script tag'
+    ctx.body = create;
   } catch (e) {
     console.error(e);
   }

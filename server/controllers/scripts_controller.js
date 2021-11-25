@@ -22,6 +22,11 @@ export const createScript = async (shop, token) => {
   }
 }
 
+export const getScriptsAll = async (client) => {
+  const req = await client.get({path: 'script_tags'})
+  return req;
+}
+
 
 const baseUrl = (shop) => (
   `https://${shop}`

@@ -1,12 +1,16 @@
 import { Banner, Layout, Page, SettingToggle, TextStyle } from '@shopify/polaris';
 import React, { useState } from 'react';
 import { useAxios } from '../hooks/useAxios';
+import { useGetFetch } from '../hooks/useGetFetch';
 
 function Active() {
   const [axios] = useAxios();
   const [date, setDate] = useState(null)
   const [showBanner, setShowBanner] = useState(false)
   const [activeForm, setActiveForm] = useState(false)
+  const { loading, error, data } = useGetFetch('https://99a0-186-28-41-252.ngrok.io/script_tag')
+
+  if (loading) return '...';
 
   const contentCTA = activeForm ? 'Uninstall' : 'Install'
   const textStatus = activeForm ? 'Installed' : 'Uninstalled'
@@ -15,7 +19,7 @@ function Active() {
     if (!activeForm) {
       const request = await axios({
         method: 'post',
-        url: 'https://1488-190-146-238-178.ngrok.io/script_tag'
+        url: 'https://99a0-186-28-41-252.ngrok.io/script_tag'
       })
       /* const request = await axios.post('https://1488-190-146-238-178.ngrok.io/script_tag', {}, config) */
       console.log(request.data);

@@ -133,7 +133,7 @@ app.prepare().then(async () => {
         new Session,
         JSON.parse(read)
       )
-      console.log(session);
+      ctx.client = new Shopify.Clients.Rest(session.shop, session.accessToken)
       ctx.sessionFromToken = session;
     }
     return next();
